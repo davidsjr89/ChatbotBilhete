@@ -1,6 +1,6 @@
-# API de Chatbot em .NET 9
+# ✈️ Chatbot de Reservas Aéreas - API .NET 9
 
-Este projeto implementa uma API de chatbot simples construída com .NET 9. A API permite conversas básicas, simula a busca e reserva de passagens aéreas e inclui um componente simulado de IA para respostas genéricas.
+Um assistente virtual inteligente para pesquisar e reservar voos com respostas naturais e fluxos conversacionais.
 
 ## Estrutura do Projeto
 
@@ -31,35 +31,87 @@ O projeto segue uma arquitetura padrão de API .NET, organizada da seguinte form
 3.  **Executar a API**: Execute `dotnet run` no mesmo diretório. A API estará disponível em `https://localhost:<porta>` e `http://localhost:<porta>` (as portas são definidas pelo .NET).
 4.  **Testar**: Você pode usar ferramentas como Swagger (acessível em `/swagger` na URL base), Postman ou `curl` para enviar requisições POST para o endpoint `/api/Chat/message`.
 
-## Exemplo de Requisição (JSON)
+## 🔍 Fluxos Disponíveis
+1. Conversa Inicial
 
+POST /api/Chat/message
+Content-Type: application/json
 ```json
+
+{
+  "userId": "cliente123",
+  "message": "Olá, preciso de ajuda",
+  "sessionId": null
+}
+```
+
+2. Pesquisa de Voos
+   
+POST /api/Chat/message
+Content-Type: application/json
+```json
+
+{
+  "userId": "cliente123",
+  "message": "Quero voos para São Paulo em 20/06/2025",
+  "sessionId": null
+}
+```
+
+3. Reserva Direta (2 passos)
+   
+Passo 1 - Solicitação:
+POST /api/Chat/message
+Content-Type: application/json
+```json
+
+{
+  "userId": "cliente123",
+  "message": "Reservar voo LA303",
+  "sessionId": null
+}
+```
+
+Passo 2 - Confirmação (use o sessionId recebido):
+
 POST /api/Chat/message
 Content-Type: application/json
 
+```json
 {
-  "userId": "user123",
-  "message": "Olá",
-  "sessionId": null 
+  "userId": "cliente123",
+  "message": "sim",
+  "sessionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
 }
 ```
 
-## Exemplo de Resposta (JSON)
+## 📋 Exemplos de Respostas
+
+POST /api/Chat/message
+Content-Type: application/json
 
 ```json
 {
-  "response": "Olá! Em que posso ajudar?",
-  "sessionId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "response": "Encontrei 2 voos para São Paulo em 20/06/2025:",
+  "sessionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "actionData": [
+    {
+      "flightNumber": "G3123",
+      "origin": "RIO",
+      "destination": "SAO",
+      "departure": "2025-06-20T08:00:00",
+      "price": 350.00
+    }
+  ]
+}
+```
+## Resposta de Confirmação
+
+```json
+{
+  "response": "✅ Reserva confirmada! Voo G3123 para São Paulo em 20/06. Nº do pedido: RES-2025-789",
+  "sessionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "actionData": null
-}
-```
-## Exemplo de Requisição (JSON)
-
-```json
-{
-  "userId": "user123",
-  "message": "Procuro passagem de São Paulo para Rio de Janeiro em 28/05/2025",
-  "sessionId": null 
 }
 ```
 
@@ -82,13 +134,27 @@ Content-Type: application/json
     ]
 }
 ```
-## Próximos Passos e Melhorias
 
-- **IA Real**: Substituir `SimulatedAiService` por uma integração com um serviço de IA real (como Azure OpenAI, Google Gemini, etc.).
-- **Sistema de Passagens Real**: Substituir `SimulatedTicketService` por uma integração com um GDS (Global Distribution System) ou API de companhia aérea real.
-- **Persistência**: Implementar persistência para o estado da sessão (ex: usando Redis ou um banco de dados) em vez do dicionário estático em memória.
-- **Autenticação/Autorização**: Adicionar mecanismos de segurança adequados.
-- **Tratamento de Erros**: Melhorar o tratamento de erros e logging.
-- **Testes Unitários/Integração**: Adicionar testes automatizados.
-- **Configuração**: Mover dados simulados ou configurações para `appsettings.json`.
+## 🗂 Estrutura do Projeto
+
+## Próximos Passos e Melhorias
+chatbot-api/
+├── Controllers/          # Controladores API
+│   └── ChatController.cs
+├── Models/              # Modelos de dados
+│   ├── Flight.cs        # Dados de voo
+│   ├── Requests/        # Modelos de requisição
+│   └── Responses/       # Modelos de resposta
+├── Services/            # Lógica de negócio
+│   ├── ChatService.cs   # Núcleo inteligente
+│   ├── AiService/       # Processamento de linguagem
+│   └── FlightService/   # Gerenciamento de voos
+└── Program.cs           # Configuração inicial
+
+## 🌟 Recursos
+- Conversação natural
+- Pesquisa por destino, data e companhia aérea
+- Reserva em 2 passos (identificação + confirmação)
+- Contexto de conversa persistente
+- Simulação realista de voos
 
