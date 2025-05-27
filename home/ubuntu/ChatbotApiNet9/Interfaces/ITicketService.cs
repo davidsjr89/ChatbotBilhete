@@ -6,5 +6,6 @@ public interface ITicketService
 {
     Task<List<Flight>> SearchFlightsAsync(string origin, string destination, DateTime date);
     Task<bool> BookFlightAsync(string flightNumber, string userId);
+    Task<List<Flight>> SearchAllFlightsAsync();
 }
 

@@ -29,7 +29,7 @@ public class ChatService : IChatService
         string sessionId = request.SessionId ?? Guid.NewGuid().ToString();
         SessionState currentState = _sessionContext.GetValueOrDefault(sessionId, new SessionState { CurrentIntent = Intent.None });
 
-        string responseMessage;
+        string responseMessage = "";
         object? actionData = null;
 
         // Lógica aprimorada com detecção de intenção e contexto de sessão
@@ -45,9 +45,13 @@ public class ChatService : IChatService
                     if (flights.Any())
                     {
                         responseMessage = $"Encontrei {flights.Count} voos para {searchParams.Destination} em {searchParams.Date:dd/MM/yyyy}. Qual você gostaria de reservar? (Informe o número do voo)";
-                        actionData = flights; // Retorna a lista de voos encontrados
+                        actionData = flights;
                         currentState.CurrentIntent = Intent.WaitingForFlightSelection;
-                        currentState.ContextData = JsonSerializer.Serialize(flights); // Guarda os voos no contexto
+                        currentState.ContextData = JsonSerializer.Serialize(new FlightSearchContext
+                        {
+                            Flights = flights,
+                            SearchParams = searchParams
+                        });
                     }
                     else
                     {
@@ -63,43 +67,122 @@ public class ChatService : IChatService
                 }
                 break;
 
+            case Intent.ConfirmFlightBooking:
+                if (request.Message.Equals("sim", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (currentState.ContextData != null)
+                    {
+                        try
+                        {
+                            var bookingContext = JsonSerializer.Deserialize<BookingContext>(currentState.ContextData);
+                            if (bookingContext != null)
+                            {
+                                bool booked = await _ticketService.BookFlightAsync(bookingContext.FlightNumber, request.UserId);
+                                if (booked)
+                                {
+                                    responseMessage = $"Reserva confirmada! Seu voo {bookingContext.FlightNumber} foi reservado com sucesso.";
+                                }
+                                else
+                                {
+                                    responseMessage = "Não foi possível completar a reserva. Por favor, tente novamente.";
+                                }
+                            }
+                        }
+                        catch (JsonException ex)
+                        {
+                            _logger.LogError(ex, "Erro ao desserializar contexto de reserva");
+                            responseMessage = "Ocorreu um erro ao processar sua reserva.";
+                        }
+                    }
+                    currentState.CurrentIntent = Intent.None;
+                    currentState.ContextData = null;
+                }
+                else if (request.Message.Equals("não", StringComparison.OrdinalIgnoreCase) ||
+                         request.Message.Equals("nao", StringComparison.OrdinalIgnoreCase))
+                {
+                    responseMessage = "Reserva cancelada. Posso ajudar com algo mais?";
+                    currentState.CurrentIntent = Intent.None;
+                    currentState.ContextData = null;
+                }
+                else
+                {
+                    responseMessage = "Por favor, responda 'sim' para confirmar ou 'não' para cancelar a reserva.";
+                }
+                break;
+
             case Intent.BookFlight:
                 var flightNumberToBook = ExtractFlightNumber(request.Message);
                 if (!string.IsNullOrEmpty(flightNumberToBook))
                 {
-                    // Verifica se o voo está no contexto da pesquisa anterior
-                    List<Flight>? previousFlights = null;
+                    // Tenta encontrar o voo em três lugares:
+                    // 1. No contexto da pesquisa anterior
+                    // 2. Na lista geral de voos simulados
+                    // 3. Se não encontrar, pede para o usuário fazer uma busca
+
+                    Flight? flightToBook = null;
+                    FlightSearchContext? searchContext = null;
+
+                    // Verifica se há contexto de pesquisa anterior
                     if (currentState.ContextData != null)
                     {
-                        try { previousFlights = JsonSerializer.Deserialize<List<Flight>>(currentState.ContextData); }
-                        catch (JsonException ex) { _logger.LogWarning(ex, "Failed to deserialize flight context for session {SessionId}", sessionId); }
+                        try
+                        {
+                            searchContext = JsonSerializer.Deserialize<FlightSearchContext>(currentState.ContextData);
+                            flightToBook = searchContext?.Flights?.FirstOrDefault(f =>
+                                f.FlightNumber.Equals(flightNumberToBook, StringComparison.OrdinalIgnoreCase));
+                        }
+                        catch (JsonException ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to deserialize flight context for session {SessionId}", sessionId);
+                        }
                     }
 
-                    if (previousFlights != null && previousFlights.Any(f => f.FlightNumber.Equals(flightNumberToBook, StringComparison.OrdinalIgnoreCase)))
+                    // Se não encontrou no contexto, busca na lista geral de voos
+                    if (flightToBook == null)
+                    {
+                        var allFlights = await _ticketService.SearchAllFlightsAsync();
+                        flightToBook = allFlights.FirstOrDefault(f =>
+                            f.FlightNumber.Equals(flightNumberToBook, StringComparison.OrdinalIgnoreCase));
+
+                        if (flightToBook != null)
+                        {
+                            responseMessage = $"Encontrei o voo {flightNumberToBook} ({flightToBook.Origin} → {flightToBook.Destination}). Deseja reservar este voo? (responda 'sim' ou 'não')";
+                            currentState.CurrentIntent = Intent.ConfirmFlightBooking;
+                            currentState.ContextData = JsonSerializer.Serialize(new BookingContext
+                            {
+                                FlightNumber = flightNumberToBook,
+                                FlightDetails = flightToBook
+                            });
+                            actionData = flightToBook;
+                            break;
+                        }
+                    }
+
+                    // Se encontrou o voo (no contexto ou na lista geral)
+                    if (flightToBook != null)
                     {
                         bool booked = await _ticketService.BookFlightAsync(flightNumberToBook, request.UserId);
                         if (booked)
                         {
                             responseMessage = $"Ótimo! Seu voo {flightNumberToBook} foi reservado com sucesso.";
-                            currentState.CurrentIntent = Intent.None; // Reseta a intenção
+                            currentState.CurrentIntent = Intent.None;
                             currentState.ContextData = null;
                         }
                         else
                         {
                             responseMessage = $"Houve um problema ao tentar reservar o voo {flightNumberToBook}. Por favor, tente novamente mais tarde.";
-                            // Mantém o contexto para possível retentativa
                         }
                     }
                     else
                     {
-                        responseMessage = $"Não encontrei o voo {flightNumberToBook} na sua pesquisa recente. Por favor, verifique o número ou faça uma nova busca.";
-                        // Mantém o contexto de seleção
+                        responseMessage = $"Não encontrei o voo {flightNumberToBook}. Por favor, faça uma pesquisa primeiro (ex: 'buscar voo para Rio de Janeiro') ou verifique o número do voo.";
+                        currentState.CurrentIntent = Intent.None;
+                        currentState.ContextData = null;
                     }
                 }
                 else
                 {
                     responseMessage = "Por favor, informe o número do voo que deseja reservar (ex: 'reservar voo AZ101').";
-                    // Mantém o contexto de seleção
                 }
                 break;
 
@@ -110,10 +193,10 @@ public class ChatService : IChatService
                 break;
 
             case Intent.Greeting:
-                 responseMessage = "Olá! Em que posso ajudar?";
-                 currentState.CurrentIntent = Intent.None;
-                 currentState.ContextData = null;
-                 break;
+                responseMessage = "Olá! Em que posso ajudar?";
+                currentState.CurrentIntent = Intent.None;
+                currentState.ContextData = null;
+                break;
 
             case Intent.None: // Nenhuma intenção específica detectada, usar IA
             default:
@@ -136,9 +219,21 @@ public class ChatService : IChatService
         return response;
     }
 
+    private class FlightSearchContext
+    {
+        public List<Flight> Flights { get; set; } = new List<Flight>();
+        public (bool IsValid, string? Origin, string? Destination, DateTime? Date) SearchParams { get; set; }
+    }
+
+    private class BookingContext
+    {
+        public string FlightNumber { get; set; } = string.Empty;
+        public Flight? FlightDetails { get; set; }
+    }
+
     // --- Métodos Auxiliares --- 
 
-    private enum Intent { None, Greeting, Help, SearchFlights, BookFlight, WaitingForFlightDetails, WaitingForFlightSelection }
+    private enum Intent { None, Greeting, Help, SearchFlights, BookFlight, WaitingForFlightDetails, WaitingForFlightSelection, ConfirmFlightBooking }
 
     private class SessionState
     {
@@ -152,22 +247,29 @@ public class ChatService : IChatService
         // Lógica simples de detecção de palavras-chave e contexto
         message = message.ToLowerInvariant();
 
+        // Se estivermos esperando confirmação e o usuário respondeu "sim" ou "não"
+        if (currentState.CurrentIntent == Intent.ConfirmFlightBooking &&
+            (message == "sim" || message == "não" || message == "nao"))
+        {
+            return Intent.ConfirmFlightBooking;
+        }
+
         if (Regex.IsMatch(message, @"\b(olá|oi|bom dia|boa tarde|boa noite)\b")) return Intent.Greeting;
         if (Regex.IsMatch(message, @"\b(ajuda|socorro|help|help me)\b")) return Intent.Help;
-        if (Regex.IsMatch(message, @"\b(busca\w*|pesquis\w*|procur\w*|achar|acha|encontra\w*)\s+(voo|passagem)\b") || 
+        if (Regex.IsMatch(message, @"\b(busca\w*|pesquis\w*|procur\w*|achar|acha|encontra\w*)\s+(voo|passagem)\b") ||
             (currentState.CurrentIntent == Intent.WaitingForFlightDetails && ExtractFlightSearchParams(message).IsValid))
             return Intent.SearchFlights;
-        if (Regex.IsMatch(message, @"\b(reserv\w*|compr\w*)\s+(voo\w*|passage\w*)\b") || 
+        if (Regex.IsMatch(message, @"\b(reserv\w*|compr\w*)\s+(voo\w*|passage\w*)\b") ||
             (currentState.CurrentIntent == Intent.WaitingForFlightSelection && ExtractFlightNumber(message) != null))
             return Intent.BookFlight;
-        
+
         // Se já está esperando seleção e a mensagem parece um número de voo
         if (currentState.CurrentIntent == Intent.WaitingForFlightSelection && Regex.IsMatch(message, @"\b([a-zA-Z]{2}\d{3,4})\b"))
             return Intent.BookFlight;
 
         // Se está esperando detalhes e a mensagem contém destino/data
         if (currentState.CurrentIntent == Intent.WaitingForFlightDetails && ExtractFlightSearchParams(message).IsValid)
-             return Intent.SearchFlights;
+            return Intent.SearchFlights;
 
         return Intent.None; // Nenhuma intenção clara ou contexto correspondente
     }

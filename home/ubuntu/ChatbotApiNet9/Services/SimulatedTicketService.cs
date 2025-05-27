@@ -22,6 +22,11 @@ public class SimulatedTicketService : ITicketService
         _logger = logger;
     }
 
+    public Task<List<Flight>> SearchAllFlightsAsync()
+    {
+        return Task.FromResult(_flights);
+    }
+
     public Task<List<Flight>> SearchFlightsAsync(string origin, string destination, DateTime date)
     {
         _logger.LogInformation("Simulating flight search from {Origin} to {Destination} on {Date}", origin, destination, date.Date);
