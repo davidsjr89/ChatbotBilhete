@@ -8,6 +8,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ubuntu", "ubuntu", "{23B5B6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatbotApiNet9", "home\ubuntu\ChatbotApiNet9\ChatbotApiNet9.csproj", "{569DDA80-DE99-D693-BD67-3501EFA76B7A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestChatbotApiNet9", "TestChatbotApiNet9\TestChatbotApiNet9.csproj", "{69A70192-8128-4A76-9386-24E0A51E4B74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +20,10 @@ Global
 		{569DDA80-DE99-D693-BD67-3501EFA76B7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{569DDA80-DE99-D693-BD67-3501EFA76B7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{569DDA80-DE99-D693-BD67-3501EFA76B7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69A70192-8128-4A76-9386-24E0A51E4B74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69A70192-8128-4A76-9386-24E0A51E4B74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69A70192-8128-4A76-9386-24E0A51E4B74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69A70192-8128-4A76-9386-24E0A51E4B74}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -25,6 +31,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{23B5B6C1-D3C4-44B7-4FB0-D72890E808B0} = {EBEFDB8B-24C9-1DAF-DE22-BED4049D1AC8}
 		{569DDA80-DE99-D693-BD67-3501EFA76B7A} = {23B5B6C1-D3C4-44B7-4FB0-D72890E808B0}
+		{69A70192-8128-4A76-9386-24E0A51E4B74} = {23B5B6C1-D3C4-44B7-4FB0-D72890E808B0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CEA08BA5-0AD9-434D-A9C2-2E2BFB26DE05}
