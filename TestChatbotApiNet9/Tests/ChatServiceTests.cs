@@ -1,15 +1,12 @@
 using ChatbotApiNet9.Interfaces;
 using ChatbotApiNet9.Models;
+using ChatbotApiNet9.Models.Enumerators;
 using ChatbotApiNet9.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace TestChatbotApiNet9.Tests
 {
@@ -246,31 +243,6 @@ namespace TestChatbotApiNet9.Tests
         public int CurrentPassengerIndex { get; set; } = 0;
         public PassengerDataCollectionStep CurrentStep { get; set; } = PassengerDataCollectionStep.None;
         public Passenger CurrentPassenger { get; set; } = new Passenger();
-    }
-
-    public enum PassengerDataCollectionStep
-    {
-        None,
-        Name,
-        RG,
-        CPF,
-        BirthDate,
-        Complete
-    }
-    
-    public enum Intent
-    {
-        None,
-        Greeting,
-        Help,
-        SearchFlights,
-        BookFlight,
-        WaitingForFlightDetails,
-        WaitingForFlightSelection,
-        WaitingForPassengerCount,
-        WaitingForPassengerDetails,
-        ConfirmReservation,
-        ConfirmFlightBooking
     }
     
     public class SessionState

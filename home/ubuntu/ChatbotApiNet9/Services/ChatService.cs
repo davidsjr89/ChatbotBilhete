@@ -2,6 +2,7 @@ using ChatbotApiNet9.Interfaces;
 using ChatbotApiNet9.Models;
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using ChatbotApiNet9.Models.Enumerators;
 
 namespace ChatbotApiNet9.Services;
 public class ChatService : IChatService
@@ -105,32 +106,6 @@ public class ChatService : IChatService
         public int CurrentPassengerIndex { get; set; } = 0;
         public PassengerDataCollectionStep CurrentStep { get; set; } = PassengerDataCollectionStep.None;
         public Passenger CurrentPassenger { get; set; } = new Passenger();
-    }
-
-    private enum PassengerDataCollectionStep
-    {
-        None,
-        Name,
-        RG,
-        CPF,
-        BirthDate,
-        Complete
-    }
-
-    // --- Métodos Auxiliares --- 
-    private enum Intent
-    {
-        None,
-        Greeting,
-        Help,
-        SearchFlights,
-        BookFlight,
-        WaitingForFlightDetails,
-        WaitingForFlightSelection,
-        WaitingForPassengerCount,
-        WaitingForPassengerDetails,
-        ConfirmReservation,
-        ConfirmFlightBooking
     }
 
     private class SessionState
