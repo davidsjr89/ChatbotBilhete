@@ -10,4 +10,3 @@ public class Flight
     public decimal Price { get; set; }
     public required string Airline { get; set; }
 }
-

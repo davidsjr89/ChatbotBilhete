@@ -14,11 +14,26 @@ public class LoginRequest
     public required string Password { get; set; }
 }
 
-// DTO for login response (could include a token in the future)
-public class LoginResponse
+// DTO for successful login/refresh response
+public class TokenResponse
+{
+    public required string AccessToken { get; set; }
+    public required string RefreshToken { get; set; }
+    public bool Success { get; set; } = true;
+    public string Message { get; set; } = "Success";
+}
+
+// DTO for refresh token request
+public class RefreshTokenRequest
+{
+    public required string AccessToken { get; set; }
+    public required string RefreshToken { get; set; }
+}
+
+// DTO for generic error response (optional, can use ProblemDetails)
+public class ErrorResponse
 {
     public required string Message { get; set; }
-    public bool Success { get; set; }
-    // public string? Token { get; set; } // Example for future JWT implementation
+    public bool Success { get; set; } = false;
 }
 
